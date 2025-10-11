@@ -1,0 +1,22 @@
+{
+  "name": "botbase-2.0",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.3",
+    "@types/node": "^24.6.2",
+    "discord.js": "^14.21.0",
+    "prisma": "^6.16.3",
+    "ts-node": "^10.9.2"
+  },
+  "scripts": {
+    "start": "bun run index.ts",
+    "dev": "bun run index.ts"
+  }
+}
