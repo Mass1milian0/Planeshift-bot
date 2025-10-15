@@ -8,6 +8,7 @@ import { type Message, type TextChannel } from "discord.js";
 import { parentPort } from "worker_threads";
 import client from "./singletons/discordClient";
 import util from 'node:util'
+import logger from "./logger.ts";
 let botConfig: any;
 let channelBlacklist: any[];
 let channelConfig: any[];
@@ -40,26 +41,26 @@ parentPort?.postMessage({
   type: "LOAD_CONFIG",
 });
 parentPort?.on("message", async (message: message) => {
-  console.log(`Message Sentry: Received message`);
-  console.log(util.inspect(message, { depth: null, colors: true }));
+  logger.info(`Message Sentry: Received message`);
+  logger.info(util.inspect(message, { depth: null, colors: true }));
   // Handle the message
   switch (message.type) {
     case "CONFIG_LOAD":
-      console.log("Message Sentry: Reloading configuration");
+      logger.info("Message Sentry: Reloading configuration");
       botConfig = message.content.botConfig;
       channelBlacklist = message.content.channelBlacklist;
       channelConfig = message.content.channelConfig;
       ignoredCharacters = message.content.ignoredCharacters;
       thresholds = message.content.thresholds;
-      console.log("Message Sentry: Configuration Loaded");
+      logger.info("Message Sentry: Configuration Loaded");
       Loaded = true;
       break;
     case "DB_RESPONSE":
-      console.log("Message Sentry: Received DB response");
-      console.log("Message Sentry: Pending requests:");
-      console.log(util.inspect(pending, { depth: null, colors: true }));
-      console.log("Message Sentry: Pending Has content ID?");
-      console.log(pending.has(message.content.id));
+      logger.info("Message Sentry: Received DB response");
+      logger.info("Message Sentry: Pending requests:");
+      logger.info(util.inspect(pending, { depth: null, colors: true }));
+      logger.info("Message Sentry: Pending Has content ID?");
+      logger.info(pending.has(message.content.id));
       if (pending.has(message.content.id)) {
         const { resolve } = pending.get(message.content.id);
         resolve(message.content.data);
@@ -67,7 +68,7 @@ parentPort?.on("message", async (message: message) => {
       }
       break;
     case "CONFIG_UPDATE":
-      console.log("Message Sentry: Configuration Requested");
+      logger.info("Message Sentry: Configuration Requested");
       parentPort?.postMessage({
         type: "LOAD_CONFIG",
       });
@@ -79,12 +80,12 @@ parentPort?.on("message", async (message: message) => {
 
 async function xp(msg: Message, amt: number) {
   //attempt to find the user
-  console.log(`Message Sentry: Attempting to find user`);
+  logger.info(`Message Sentry: Attempting to find user`);
   let user = await sendDBRequest("userXp", "findUnique", {
     where: { userId: msg.author.id },
   });
-  console.log("Message Sentry: User");
-  console.log(util.inspect(user, { depth: null, colors: true }));
+  logger.info("Message Sentry: User");
+  logger.info(util.inspect(user, { depth: null, colors: true }));
   if (!user) {
     //register user and award xp
     await sendDBRequest("userXp", "create", {
@@ -114,9 +115,9 @@ async function xp(msg: Message, amt: number) {
           last_message: new Date(),
         },
       });
-      console.log(`Message Sentry: Awarded XP to ${msg.author.id}`);
+      logger.info(`Message Sentry: Awarded XP to ${msg.author.id}`);
     } else {
-      console.log(`Message Sentry: Cooldown not exceeded for ${msg.author.id}`);
+      logger.info(`Message Sentry: Cooldown not exceeded for ${msg.author.id}`);
     }
   }
 }
@@ -125,11 +126,11 @@ async function award(msg: Message) {
   const ignoredChars = ignoredCharacters.map(
     (c: { ignoredChar: any }) => c.ignoredChar
   );
-  console.log(`Message Sentry: Ignored characters: ${ignoredChars.join(", ")}`);
+  logger.info(`Message Sentry: Ignored characters: ${ignoredChars.join(", ")}`);
   const messageContent = msg.content;
-  console.log(`Message Sentry: Message content: ${messageContent}`);
-  console.log(`Message Sentry: XP Award Type: ${botConfig?.xpAwardTypes?.awardType}`);
-  console.log(`Message Sentry: XP Per Award: ${botConfig?.xpPerAward}`);
+  logger.info(`Message Sentry: Message content: ${messageContent}`);
+  logger.info(`Message Sentry: XP Award Type: ${botConfig?.xpAwardTypes?.awardType}`);
+  logger.info(`Message Sentry: XP Per Award: ${botConfig?.xpPerAward}`);
   switch (botConfig?.xpAwardTypes?.awardType) {
     case "Message":
       await xp(msg, botConfig?.xpPerAward || 0);
@@ -145,6 +146,7 @@ async function award(msg: Message) {
       //count the words in the message
       const wordCount = messageContent.split(" ").length;
       await xp(msg, wordCount * (botConfig?.xpPerAward || 0));
+      break;
   }
   return;
 }
@@ -175,7 +177,7 @@ async function checkThreshold(msg: Message) {
       data: { rank: userThreshold.tier },
     });
   } else {
-    console.log(
+    logger.info(
       `Message Sentry: User ${msg.author.id} did not meet any new thresholds`
     );
     return;
@@ -190,7 +192,7 @@ async function checkThreshold(msg: Message) {
 ${botConfig?.awardMessage}
 \`\`\`!xp ${userThreshold.xpGiven}\`\`\``;
 
-    console.log("Message Sentry: Sending award message to channel");
+    logger.info("Message Sentry: Sending award message to channel");
 
     // Reassign the result of each replace call back to the message variable
     message = message.replace("{user}", `${msg.author.displayName}`);
@@ -204,24 +206,24 @@ ${botConfig?.awardMessage}
 client.on("messageCreate", async (msg: Message<boolean>) => {
   if (!Loaded) return; //ignore messages until configuration is loaded
   if (msg.author.bot) return; //ignore bot messages
-  console.log(
+  logger.info(
     `Message Sentry: Message received in ${msg.channelId} - ${msg.content}`
   );
   if (msg.channel.isThread()) {
-    console.log(`Message Sentry: Message received in thread ${msg.channelId}`);
+    logger.info(`Message Sentry: Message received in thread ${msg.channelId}`);
     //get the id of the parent channel
     const parentChannelId = msg.channel.parentId;
-    console.log(`Message Sentry: Parent channel ID is ${parentChannelId}`);
+    logger.info(`Message Sentry: Parent channel ID is ${parentChannelId}`);
     let isListed = channelBlacklist.find(
       (c: { channelId: any }) => c.channelId === parentChannelId
     );
     if (botConfig?.whitelistmode && !isListed) return; //ignore if whitelist mode is enabled and the parent channel is not whitelisted
     if (!botConfig?.whitelistmode && isListed) return; //ignore if blacklist mode is enabled and the parent channel is blacklisted
-    console.log(`Message Sentry: checks passed`);
+    logger.info(`Message Sentry: checks passed`);
     const parentChannelConfig = channelConfig.find(
       (c: { channelId: any }) => c.channelId === parentChannelId
     );
-    console.log(
+    logger.info(
       `Message Sentry: Parent channel config is ${
         parentChannelConfig ? "found" : "not found"
       }`
@@ -237,7 +239,7 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
   );
   if (botConfig?.whitelistmode && !isListed) return; //ignore if whitelist mode is enabled and the channel is not whitelisted
   if (!botConfig?.whitelistmode && isListed) return;
-  console.log(`Message Sentry: checks passed`);
+  logger.info(`Message Sentry: checks passed`);
   await award(msg);
   //await checkThreshold(msg);
 });
