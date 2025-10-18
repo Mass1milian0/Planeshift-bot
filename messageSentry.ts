@@ -241,7 +241,7 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
   if (!botConfig?.whitelistmode && isListed) return;
   logger.info(`Message Sentry: checks passed`);
   await award(msg);
-  //await checkThreshold(msg);
+  await checkThreshold(msg);
 });
 
 await fetch(
