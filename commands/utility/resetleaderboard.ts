@@ -1,3 +1,6 @@
+// Licensed under CC BY 4.0
+// © Massimiliano Biondi, 2025
+// https://creativecommons.org/licenses/by/4.0/
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import database from "../../singletons/database";
 
