@@ -21,7 +21,7 @@ export default {
 		}
 
 		const leaderboard = topUsers.map((user: any, index: number) => {
-			return `${index + 1}. <@${user.userId}> - ${user.xp} XP`;
+			return `${index + 1}. <@${user.userId}> - rank: ${user.rank} - ${user.xp} XP`;
 		}).join("\n");
 
 		await interaction.reply({ content: `**Top 10 Users by XP:**\n${leaderboard}`, flags: MessageFlags.Ephemeral });
