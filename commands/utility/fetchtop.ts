@@ -8,7 +8,7 @@ import { sendDBRequest } from "../../singletons/database.ts";
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('top')
+		.setName('fetchtop')
 		.setDescription('Displays the top 10 users by XP.'),
 	async execute(interaction: any) {
 		const topUsers = await sendDBRequest("userXp", "findMany", {
