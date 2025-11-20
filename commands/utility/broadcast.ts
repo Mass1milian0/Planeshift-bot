@@ -38,7 +38,7 @@ export default {
         if (targetChannel && targetChannel.isTextBased()) {
           targetChannel.send(message.content);
           //await 3 seconds before sending the next message
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 1));
         }
       }
 
