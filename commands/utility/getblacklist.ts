@@ -17,7 +17,6 @@ export default {
 			return interaction.reply({ content: "No channels are blacklisted.", flags: MessageFlags.Ephemeral });
 		}
 		const blacklistedChannels = blacklist.map((entry: any) => `<#${entry.channelId}>`).join(", ");
-		console.log("Blacklisted channels:", blacklistedChannels.length);
 		if (blacklistedChannels.length > 1500) {
 			// Split the string into chunks of 1500 characters or less, ensuring splits occur at commas
 			const chunks: string[] = [];
@@ -43,9 +42,6 @@ export default {
 			// Send the chunks as separate messages
 			await interaction.reply({ content: `Blacklisted channels (split into chunks):`, flags: MessageFlags.Ephemeral });
 			for (const chunk of chunks) {
-				if (chunk.length > 1500) {
-					console.error("Chunk exceeds 1500 characters:", chunk); // Debugging log
-				}
 				await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
 			} 
 		} else {

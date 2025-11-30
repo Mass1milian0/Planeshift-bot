@@ -74,7 +74,6 @@ export default {
       });
     }
     if (interaction.options.getBoolean("whitelistmode")) {
-      console.log(interaction.options.getBoolean("whitelistmode"))
       const whitelistmode = interaction.options.getBoolean("whitelistmode");
       await database.botConfig.update({
         where: { id: 1 },
