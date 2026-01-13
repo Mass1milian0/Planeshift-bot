@@ -4,8 +4,8 @@
 import { Collection } from 'discord.js';
 const commands = {
     commands : new Collection<string, any>(),
-    addCommand: (name: string, execute: Function) => {
-        commands.commands.set(name, execute);
+    addCommand: (name: string, execute: Function, autocomplete: Function|null|undefined = null) => {
+        commands.commands.set(name, { execute, autocomplete });
     },
     getCommand: (name: string) => {
         return commands.commands.get(name);

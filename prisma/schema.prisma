@@ -1,6 +1,3 @@
-// Licensed under CC BY 4.0
-// © Massimiliano Biondi, 2025
-// https://creativecommons.org/licenses/by/4.0/
 generator client {
   provider        = "prisma-client-js"
   output          = "../generated/prisma"
@@ -13,15 +10,16 @@ datasource db {
 }
 
 model botConfig {
-  id            BigInt       @id @default(autoincrement())
-  awardType     BigInt
-  xpPerAward    Float        @db.Real
-  created_at    DateTime     @default(now()) @db.Timestamptz(6)
-  awardMessage  String?
-  cooldown      BigInt?
-  awardChannel  String?
-  whitelistmode Boolean      @default(false)
-  xpAwardTypes  xpAwardTypes @relation(fields: [awardType], references: [id], onDelete: Cascade)
+  id              BigInt       @id @default(autoincrement())
+  awardType       BigInt
+  xpPerAward      Float        @db.Real
+  created_at      DateTime     @default(now()) @db.Timestamptz(6)
+  awardMessage    String?
+  cooldown        BigInt?
+  awardChannel    String?
+  whitelistmode   Boolean      @default(false)
+  donationChannel String       @default("")
+  xpAwardTypes    xpAwardTypes @relation(fields: [awardType], references: [id], onDelete: Cascade)
 }
 
 model channelBlacklist {
@@ -69,4 +67,31 @@ model userXp {
   last_message DateTime    @db.Timestamptz(6)
   rank         Int?
   thresholds   thresholds? @relation(fields: [rank], references: [tier], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model xpDonationEntities {
+  id              BigInt          @id @default(autoincrement())
+  entityName      String
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  totalXp         Int             @default(0)
+  donationMessage String          @default("\"\"")
+  entityImageUrl  String          @default("")
+  xpDonationLog   xpDonationLog[]
+}
+
+model xpDonationLog {
+  id                 BigInt             @id @default(autoincrement())
+  userId             String
+  xpDonated          BigInt             @default(0)
+  entityId           BigInt
+  messageLink        String
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  xpDonationEntities xpDonationEntities @relation(fields: [entityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model webhookInfo {
+  id           BigInt   @id @default(autoincrement())
+  webhookId    String   @default("")
+  webhookToken String   @default("")
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
 }

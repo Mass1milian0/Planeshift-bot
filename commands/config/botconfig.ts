@@ -33,6 +33,9 @@ export default {
           "Custom message sent when XP is awarded. {user} and {tier} are valid substitutions."
         )
     )
+    .addChannelOption((option) =>
+      option.setName("donationchannel").setDescription("The channel ID for donations")
+    )
     .addStringOption((option) =>
       option
         .setName("cooldown")
@@ -80,7 +83,13 @@ export default {
         data: { whitelistmode },
       });
     }
-
+    if (interaction.options.getChannel("donationchannel")) {
+      const donationChannel = interaction.options.getChannel("donationchannel");
+      await database.botConfig.update({
+        where: { id: 1 },
+        data: { donationChannel },
+      });
+    }
     await interaction.reply({
       content: "Bot configuration updated successfully.",
       flags: MessageFlags.Ephemeral,

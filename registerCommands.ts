@@ -25,7 +25,7 @@ for (const folder of commandFolders) {
 			if(folder !== "internal") {
 				commandsRest.push(command.data.toJSON());
 			}
-			commands.addCommand(command.data.name, command.execute);
+			commands.addCommand(command.data.name, command.execute, command.autocomplete || undefined);
 		} else {
 			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 		}

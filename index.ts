@@ -17,7 +17,7 @@ if (Number(process.env.init)) {
   );
 } else {
   initWorker();
-  worker.on("message", async(message: message) => {
+  worker.on("message", async (message: message) => {
     switch (message.type) {
       case "FATAL":
         console.error(`Worker fatal error: ${message.content}`);
@@ -42,10 +42,14 @@ if (Number(process.env.init)) {
                 },
               },
             }),
-            channelBlacklist: await sendDBRequest("channelBlacklist", "findMany", {
-              select: { channelId: true },
-              where: { blacklisted: true },
-            }),
+            channelBlacklist: await sendDBRequest(
+              "channelBlacklist",
+              "findMany",
+              {
+                select: { channelId: true },
+                where: { blacklisted: true },
+              }
+            ),
             channelConfig: await sendDBRequest("channelConfig", "findMany", {}),
             ignoredCharacters: await sendDBRequest(
               "ignoredCharacters",
@@ -58,9 +62,16 @@ if (Number(process.env.init)) {
         break;
       case "DB_REQUEST":
         try {
-          const data = await sendDBRequest(message.content.type, message.content.action, message.content.data);
-          worker.postMessage({ type: "DB_RESPONSE", content: { id: message.content.id, data } });
-        } catch (err : any) {
+          const data = await sendDBRequest(
+            message.content.type,
+            message.content.action,
+            message.content.data
+          );
+          worker.postMessage({
+            type: "DB_RESPONSE",
+            content: { id: message.content.id, data },
+          });
+        } catch (err: any) {
           worker.postMessage({
             type: "DB_RESPONSE",
             content: {
@@ -77,15 +88,19 @@ if (Number(process.env.init)) {
 }
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isAutocomplete()) {
+    const command = commands.getCommand(interaction.commandName);
+    if (!command || !command.autocomplete) return;
+    await command.autocomplete(interaction);
+  }
   if (!interaction.isCommand() && !interaction.isButton()) return;
-
   const command = commands.getCommand(
     interaction.isCommand() ? interaction.commandName : interaction.customId
   );
   if (!command) return;
 
   try {
-    await command(interaction);
+    await command.execute(interaction);
   } catch (error) {
     console.error(
       `Error executing command ${
