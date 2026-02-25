@@ -31,7 +31,7 @@ Planeshift Bot is a Discord bot designed to manage XP systems, thresholds, and c
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-username/planeshift-bot.git
-   cd planeshift-botbun install
+   cd planeshift-bot
    ```
 2. Install dependencies:
    ```bash    
