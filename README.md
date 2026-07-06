@@ -25,6 +25,7 @@ Planeshift Bot is a Discord bot designed to manage XP systems, thresholds, and c
 - `/setawardchannel`: Sets the channel where XP award messages will be sent.
 - `/threshold`: Creates or updates XP thresholds.
 - `/botconfig`: Configures bot-wide settings such as XP award type, cooldowns, and whitelist mode.
+- `/sethoneypotchannel`: Sets a channel which the bot will overwatch as a honeypot channel.
 
 ## Installation
 

@@ -19,6 +19,7 @@ model botConfig {
   awardChannel    String?
   whitelistmode   Boolean      @default(false)
   donationChannel String       @default("")
+  honeypotChannel String?      @default("")
   xpAwardTypes    xpAwardTypes @relation(fields: [awardType], references: [id], onDelete: Cascade)
 }
 
