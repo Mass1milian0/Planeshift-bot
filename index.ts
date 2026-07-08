@@ -6,7 +6,7 @@ import client from "./singletons/discordClient.ts";
 import "./registerCommands.js";
 import commands from "./singletons/commands.ts";
 import worker, { initWorker } from "./singletons/worker.ts";
-import database, { sendDBRequest } from "./singletons/database.ts";
+import { sendDBRequest } from "./singletons/database.ts";
 interface message {
   type: string;
   content: any;

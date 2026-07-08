@@ -7,6 +7,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import database from "../../singletons/database";
+import { sendUpdate } from "../../singletons/worker";
 
 export default {
   data: new SlashCommandBuilder()
@@ -36,5 +37,6 @@ export default {
       content: "Bot configuration updated successfully.",
       flags: MessageFlags.Ephemeral,
     });
+    await sendUpdate();
   },
 };

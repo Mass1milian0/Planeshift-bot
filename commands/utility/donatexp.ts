@@ -5,7 +5,6 @@
 import { MessageFlags, messageLink, SlashCommandBuilder } from "discord.js";
 import { sendDBRequest } from "../../singletons/database.ts";
 import webhook from "../../singletons/discordWebhook.ts"
-import { writeFileSync } from "node:fs";
 
 export default {
   data: new SlashCommandBuilder()
