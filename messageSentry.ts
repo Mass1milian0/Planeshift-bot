@@ -3,11 +3,10 @@
 // © Massimiliano Biondi, 2025
 // https://creativecommons.org/licenses/by/4.0/
 
-
 import { type Message, type TextChannel } from "discord.js";
 import { parentPort } from "worker_threads";
 import client from "./singletons/discordClient";
-import util from 'node:util'
+import util from "node:util";
 let botConfig: any;
 let channelBlacklist: any[];
 let channelConfig: any[];
@@ -107,7 +106,7 @@ async function xp(msg: Message, amt: number) {
 
 async function award(msg: Message) {
   const ignoredChars = ignoredCharacters.map(
-    (c: { ignoredChar: any }) => c.ignoredChar
+    (c: { ignoredChar: any }) => c.ignoredChar,
   );
   const messageContent = msg.content;
   switch (botConfig?.xpAwardTypes?.awardType) {
@@ -146,7 +145,7 @@ async function checkThreshold(msg: Message) {
   const userThreshold = thresholds.find(
     (t: { xpRequired: any; tier: number }) =>
       Number(t.xpRequired) <= xp.xp && // User's XP meets or exceeds the threshold
-      (!xp.rank || t.tier > xp.rank) // User's rank is less than the threshold's tier
+      (!xp.rank || t.tier > xp.rank), // User's rank is less than the threshold's tier
   );
 
   if (userThreshold) {
@@ -162,7 +161,7 @@ async function checkThreshold(msg: Message) {
   // Send a message to the award channel
   if (botConfig?.awardChannel) {
     const awardChannel = client.channels.cache.get(
-      botConfig?.awardChannel
+      botConfig?.awardChannel,
     ) as TextChannel;
     let message = `<@${msg.author.id}>
 ${botConfig?.awardMessage}
@@ -177,43 +176,56 @@ ${botConfig?.awardMessage}
   }
 }
 
+async function whitelistCheck(msg: Message, channel: string) {
+  let isListed = channelBlacklist.find(
+    (c: { channelId: any }) => c.channelId === channel,
+  );
+  if (botConfig?.whitelistmode && !isListed) return false; //ignore if whitelist mode is enabled and the parent channel is not whitelisted
+  if (!botConfig?.whitelistmode && isListed) return false; //ignore if blacklist mode is enabled and the parent channel is blacklisted
+}
+
+async function threadCheck(msg: Message) {
+  //get the id of the parent channel
+  const parentChannelId = msg.channel.parentId;
+  if (!(await whitelistCheck(msg, parentChannelId))) return false;
+  //ignore if the parent channel is set to not follow threads, default to following threads
+  const parentChannelConfig = channelConfig.find(
+    (c: { channelId: any }) => c.channelId === parentChannelId,
+  );
+  let followThreads = parentChannelConfig?.followThreads ?? true;
+  if (!followThreads) return false;
+  return true;
+}
+
+async function honeypotCheck(msg: Message) {
+  if (msg.channelId === botConfig?.honeypotChannel) {
+    const guild = msg.guild;
+    if (!guild) return false;
+    const member = await guild.members.fetch(msg.author.id);
+    if (!member) return false;
+    //ban and delete the messages
+    await member.ban({
+      reason: "Sent a message in the honeypot channel",
+      deleteMessageSeconds: 604800,
+    });
+    console.log(
+      `Banned user ${msg.author.tag} for sending a message in the honeypot channel`,
+    );
+    return true;
+  }
+  return false;
+}
+
 client.on("messageCreate", async (msg: Message<boolean>) => {
   if (!Loaded) return; //ignore messages until configuration is loaded
   if (msg.author.bot) return; //ignore bot messages
   if (msg.channel.isThread()) {
-    //get the id of the parent channel
-    const parentChannelId = msg.channel.parentId;
-    let isListed = channelBlacklist.find(
-      (c: { channelId: any }) => c.channelId === parentChannelId
-    );
-    if (botConfig?.whitelistmode && !isListed) return; //ignore if whitelist mode is enabled and the parent channel is not whitelisted
-    if (!botConfig?.whitelistmode && isListed) return; //ignore if blacklist mode is enabled and the parent channel is blacklisted
-    const parentChannelConfig = channelConfig.find(
-      (c: { channelId: any }) => c.channelId === parentChannelId
-    );
-    //ignore if the parent channel is set to not follow threads, default to following threads
-    let followThreads = parentChannelConfig?.followThreads ?? true;
-    if (!followThreads) return;
+    if (!(await threadCheck(msg))) return; //ignore threads if the parent channel is not whitelisted or blacklisted
     await award(msg);
     await checkThreshold(msg);
   }
-  //check if message was sent in the honeypot channel, if so, ban the user that sent the message
-  console.log(`Checking message in channel ${msg.channelId} against honeypot channel ${botConfig?.honeypotChannel}`);
-  if (msg.channelId === botConfig?.honeypotChannel) {
-    const guild = msg.guild;
-    if (!guild) return;
-    const member = await guild.members.fetch(msg.author.id);
-    if (!member) return;
-    //ban and delete the messages
-    await member.ban({ reason: "Sent a message in the honeypot channel", deleteMessageSeconds: 604800});
-    console.log(`Banned user ${msg.author.tag} for sending a message in the honeypot channel`);
-    return;
-  }
-  let isListed = channelBlacklist.find(
-    (c: { channelId: any }) => c.channelId === msg.channelId
-  );
-  if (botConfig?.whitelistmode && !isListed) return; //ignore if whitelist mode is enabled and the channel is not whitelisted
-  if (!botConfig?.whitelistmode && isListed) return;
+  if (await honeypotCheck(msg)) return; //ignore messages in the honeypot channel and ban the user
+  if (!(await whitelistCheck(msg, msg.channelId))) return; //ignore messages in blacklisted channels or whitelisted channels if whitelist mode is enabled
   await award(msg);
   await checkThreshold(msg);
 });
@@ -225,7 +237,7 @@ await fetch(
     headers: {
       "Content-Type": "application/json",
     },
-  }
+  },
 );
 setInterval(async () => {
   //curl --retry 3 --retry-delay 1 -m 15 https://sm.hetrixtools.net/hb/?s=e48cc2868e3c4ecaa485e50944fbc66d
@@ -236,6 +248,6 @@ setInterval(async () => {
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   ); // Send heartbeat request
 }, 1000 * 60); // Every Minute
