@@ -51,7 +51,7 @@ export default {
     });
 
     if (!topUsers || topUsers.length === 0) {
-      return interaction.reply({
+      return interaction.followUp({
         content: "No users found.",
         flags: MessageFlags.Ephemeral,
       });
