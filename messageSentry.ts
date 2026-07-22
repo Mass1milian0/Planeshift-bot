@@ -68,15 +68,27 @@ parentPort?.on("message", async (message: message) => {
 });
 
 async function xp(msg: Message, amt: number) {
-  //attempt to find the user
-  let user = await sendDBRequest("userXp", "findUnique", {
+  //get the player id
+  let playerId = await sendDBRequest("players", "findUnique", {
     where: { userId: msg.author.id },
   });
-  if (!user) {
-    //register user and award xp
-    await sendDBRequest("userXp", "create", {
+  if(!playerId) {
+    //register the player
+    playerId = await sendDBRequest("players", "create", {
       data: {
         userId: msg.author.id,
+      },
+    });
+  }
+  //attempt to find the user
+  let user = await sendDBRequest("userXp", "findUnique", {
+    where: { userId: playerId?.id },
+  });
+  if (!user) {
+    //award xp
+    await sendDBRequest("userXp", "create", {
+      data: {
+        userId: playerId?.id,
         xp: amt,
         last_message: new Date(),
       },
@@ -93,7 +105,7 @@ async function xp(msg: Message, amt: number) {
     ) {
       //award xp
       await sendDBRequest("userXp", "update", {
-        where: { userId: msg.author.id },
+        where: { userId: playerId?.id },
         data: {
           xp: {
             increment: amt,
@@ -131,10 +143,15 @@ async function award(msg: Message) {
 }
 
 async function checkThreshold(msg: Message) {
-  // Retrieve the user's XP and rank
-  const xp = await sendDBRequest("userXp", "findUnique", {
-    where: { userId: msg.author.id },
+  // Retrieve XP using relational filter (players holds Discord userId)
+  const xp = await sendDBRequest("userXp", "findFirst", {
+    where: {
+      players: {
+        userId: msg.author.id,
+      },
+    },
     select: {
+      userId: true,
       xp: true,
       rank: true,
     },
@@ -152,7 +169,7 @@ async function checkThreshold(msg: Message) {
   if (userThreshold) {
     // Award the user the new rank
     await sendDBRequest("userXp", "update", {
-      where: { userId: msg.author.id },
+      where: { userId: xp.userId },
       data: { rank: userThreshold.tier },
     });
   } else {

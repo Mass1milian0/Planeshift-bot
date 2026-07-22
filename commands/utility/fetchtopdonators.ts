@@ -16,6 +16,12 @@ export default {
         .setRequired(true)
         .setAutocomplete(true)
     )
+    .addBooleanOption((option) =>
+      option
+        .setName("exclude-nochar")
+        .setDescription("Exclude users who have not donated with a character (pre-char update) (default: false)")
+        .setRequired(false)
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async autocomplete(interaction: any) {
     const focusedValue = interaction.options.getFocused();
@@ -38,11 +44,21 @@ export default {
         flags: MessageFlags.Ephemeral,
       });
     }
+    const excludeNoChar = interaction.options.getBoolean("exclude-nochar");
+    const whereClause = excludeNoChar
+      ? {
+          entityId: entity,
+          NOT: {
+            character: null,
+          },
+        }
+      : {
+          entityId: entity,
+        };
+
     const topUsers = await sendDBRequest("xpDonationLog", "groupBy", {
       by: ["userId"],
-      where: {
-        entityId: entity,
-      },
+      where: whereClause,
       _sum: { xpDonated: true },
       orderBy: {
         _sum: { xpDonated: "desc" },
@@ -57,16 +73,32 @@ export default {
       });
     }
 
+    const playerIds = topUsers.map((user: any) => user.userId);
+    const players = await sendDBRequest("players", "findMany", {
+      where: {
+        id: {
+          in: playerIds,
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
+
+    const playersById: Map<string, any> = new Map(
+      players.map((player: any) => [player.id.toString(), player])
+    );
+
     const leaderboard = topUsers
       .map((user: any, index: number) => {
-        return `${index + 1}. <@${user.userId}> - xp donated: ${
-          user._sum.xpDonated || 0
-        }`;
+        const playerInfo: any = playersById.get(user.userId.toString());
+        const discordUser = playerInfo?.userId ? `<@${playerInfo.userId}>` : "Unknown user";
+
+          return `${index + 1}. ${discordUser} - xp donated: ${user._sum.xpDonated || 0}`;
       })
       .join("\n");
     await interaction.followUp({
-      content: `**Top 10 Donors by XP:**\n${leaderboard}`,
-      flags: MessageFlags.Ephemeral,
-    });
+      content: `**Top 10 Donors by XP:**\n${leaderboard}`});
   },
 };

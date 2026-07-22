@@ -10,6 +10,15 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 	async execute(interaction: any) {
 		const leaderboard = await database.userXp.findMany({
+            select: {
+                xp: true,
+                rank: true,
+                players: {
+                    select: {
+                        userId: true,
+                    },
+                },
+            },
 			orderBy: { xp: 'desc' },
 		});
 
@@ -17,7 +26,7 @@ export default {
 			return interaction.reply({ content: "No users found.", flags: MessageFlags.Ephemeral });
 		}
         const leaderboardMessage = leaderboard.map((user: any, index: number) => {
-            return `${index + 1}. <@${user.userId}> - rank: ${user.rank || 0} - ${user.xp} XP`;
+            return `${index + 1}. <@${user.players.userId}> - rank: ${user.rank || 0} - ${user.xp} XP`;
         }).join("\n");
 
 		if(leaderboardMessage.length > 1500) {
@@ -41,15 +50,15 @@ export default {
             }
 
             // Send the chunks as separate messages
-            await interaction.reply({ content: `Leaderboard (split into chunks):`, flags: MessageFlags.Ephemeral });
+            await interaction.reply({ content: `Leaderboard (split into chunks):` });
             for (const chunk of chunks) {
                 if (chunk.length > 1500) {
                     console.error("Chunk exceeds 1500 characters:", chunk); // Debugging log
                 }
-                await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: chunk});
             }
         } else {
-            await interaction.reply({ content: `Leaderboard: ${leaderboardMessage}`, flags: MessageFlags.Ephemeral });
+            await interaction.reply({ content: `Leaderboard: ${leaderboardMessage}`});
         }
 	}
 }

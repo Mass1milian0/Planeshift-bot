@@ -62,12 +62,13 @@ model xpAwardTypes {
 
 model userXp {
   id           BigInt      @id @default(autoincrement())
-  userId       String      @unique
+  userId       BigInt      @unique
   xp           Float
   created_at   DateTime    @default(now()) @db.Timestamptz(6)
   last_message DateTime    @db.Timestamptz(6)
   rank         Int?
   thresholds   thresholds? @relation(fields: [rank], references: [tier], onDelete: NoAction, onUpdate: NoAction)
+  players      players     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "userxp_userid_fkey")
 }
 
 model xpDonationEntities {
@@ -82,12 +83,15 @@ model xpDonationEntities {
 
 model xpDonationLog {
   id                 BigInt             @id @default(autoincrement())
-  userId             String
+  userId             BigInt
   xpDonated          BigInt             @default(0)
   entityId           BigInt
   messageLink        String
   created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  character          BigInt?
+  characters         characters?        @relation(fields: [character], references: [id], onDelete: Cascade, onUpdate: NoAction)
   xpDonationEntities xpDonationEntities @relation(fields: [entityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  players            players            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model webhookInfo {
@@ -95,4 +99,31 @@ model webhookInfo {
   webhookId    String   @default("")
   webhookToken String   @default("")
   created_at   DateTime @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model characters {
+  id            BigInt          @id @default(autoincrement())
+  player        BigInt
+  name          String
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  players       players         @relation(fields: [player], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  xpDonationLog xpDonationLog[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model players {
+  id            BigInt          @id @default(autoincrement())
+  userId        String          @unique
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  characters    characters[]
+  userXp        userXp?
+  xpDonationLog xpDonationLog[]
+}
+
+model xpDonationThresholds {
+  id         BigInt   @id @default(autoincrement())
+  xpRequired Int
+  tier       Int      @db.SmallInt
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 }

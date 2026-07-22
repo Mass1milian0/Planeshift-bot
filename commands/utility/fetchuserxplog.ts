@@ -40,8 +40,8 @@ function endOfUtcDay(d: Date): Date {
       23,
       59,
       59,
-      999
-    )
+      999,
+    ),
   );
 }
 
@@ -53,15 +53,15 @@ export default {
       option
         .setName("user")
         .setDescription("The user to fetch the XP log for")
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((option) =>
       option
         .setName("filter")
         .setDescription(
-          "the filter options to apply, execute /filterhelp for more info"
+          "the filter options to apply, execute /filterhelp for more info",
         )
-        .setRequired(false)
+        .setRequired(false),
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction: any) {
@@ -98,7 +98,9 @@ export default {
     // - created_at: datetime field
     // - xpDonated: numeric field
     const where: any = {
-      userId: user.id,
+      players: {
+        userId: user.id,
+      },
     };
 
     // Date filters
@@ -164,9 +166,26 @@ export default {
       where.xpDonated = xpDonated;
     }
 
+    if (interaction.options.getNumber("character")) {
+      const characterId = interaction.options.getNumber("character");
+      where.character = characterId;
+    }
+
     const rows = await sendDBRequest("xpDonationLog", "findMany", {
       where,
       orderBy: { created_at: "desc" },
+      include: {
+        characters: {
+          select: {
+            name: true,
+          },
+        },
+        xpDonationEntities: {
+          select: {
+            entityName: true,
+          },
+        },
+      },
       take: 20,
     });
 
@@ -176,15 +195,52 @@ export default {
           ? row.created_at
           : new Date(row.created_at);
       const unix = Math.floor(d.getTime() / 1000); // seconds
-      return `• <t:${unix}:f>: **${row.xpDonated}**XP - ${row.messageLink}`;
+      return `• <t:${unix}:f>: **${row.xpDonated}**XP - ${row.messageLink} to **${row.xpDonationEntities.entityName}** ${row.characters ? `(character: **${row.characters.name}**)` : ""}`;
     });
 
-    await interaction.reply({
-      content: rows?.length
-        ? `Found **${
-            rows.length
-          }** entries for ${user} (showing up to 20):\n${lines.join("\n")}`
-        : `No entries found for ${user} with those filters.`,
-    });
+    if (!rows?.length) {
+      await interaction.reply({
+        content: `No entries found for ${user} with those filters.`,
+      });
+      return;
+    }
+
+    const header = `Found **${rows.length}** entries for ${user} (showing up to 20):`;
+    const body = lines.join("\n");
+    const fullMessage = `${header}\n${body}`;
+
+    if (fullMessage.length <= 1500) {
+      await interaction.reply({ content: fullMessage });
+      return;
+    }
+
+    const chunks: string[] = [header];
+    for (const line of lines) {
+      const currentChunk = chunks[chunks.length - 1];
+
+      if (line.length > 1500) {
+        if (currentChunk.length > 0) {
+          chunks.push("");
+        }
+        for (let i = 0; i < line.length; i += 1500) {
+          chunks.push(line.slice(i, i + 1500));
+        }
+        continue;
+      }
+
+      const separator = currentChunk.length > 0 ? "\n" : "";
+      if (currentChunk.length + separator.length + line.length > 1500) {
+        chunks.push(line);
+      } else {
+        chunks[chunks.length - 1] = `${currentChunk}${separator}${line}`;
+      }
+    }
+
+    await interaction.reply({ content: chunks[0] });
+    for (const chunk of chunks.slice(1)) {
+      if (chunk.length > 0) {
+        await interaction.followUp({ content: chunk });
+      }
+    }
   },
 };

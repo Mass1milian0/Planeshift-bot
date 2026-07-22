@@ -40,12 +40,12 @@ export default {
 			}
 
 			// Send the chunks as separate messages
-			await interaction.reply({ content: `Blacklisted channels (split into chunks):`, flags: MessageFlags.Ephemeral });
+			await interaction.reply({ content: `Blacklisted channels (split into chunks):` });
 			for (const chunk of chunks) {
-				await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
+				await interaction.followUp({ content: chunk });
 			} 
 		} else {
-			await interaction.reply({ content: `Blacklisted channels: ${blacklistedChannels}`, flags: MessageFlags.Ephemeral });
+			await interaction.reply({ content: `Blacklisted channels: ${blacklistedChannels}` });
 		}
 	},
 };

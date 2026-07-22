@@ -11,7 +11,13 @@ export default {
 		.setDescription('Fetches the XP of a user together with their rank.'),
 	async execute(interaction: any) {
 		const userId = interaction.user.id;
-		const userXP = await sendDBRequest("userXp", "findUnique", { where: { userId } });
+		const userXP = await sendDBRequest("userXp", "findFirst", {
+			where: {
+				players: {
+					userId,
+				},
+			},
+		});
 
 		if (!userXP) {
 			return interaction.reply({ content: "You still do not have any XP.", flags: MessageFlags.Ephemeral });

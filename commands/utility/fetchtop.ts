@@ -12,6 +12,15 @@ export default {
 		.setDescription('Displays the top 10 users by XP.'),
 	async execute(interaction: any) {
 		const topUsers = await sendDBRequest("userXp", "findMany", {
+			select: {
+				xp: true,
+				rank: true,
+				players: {
+					select: {
+						userId: true,
+					},
+				},
+			},
 			orderBy: { xp: 'desc' },
 			take: 10
 		});
@@ -21,7 +30,7 @@ export default {
 		}
 
 		const leaderboard = topUsers.map((user: any, index: number) => {
-			return `${index + 1}. <@${user.userId}> - rank: ${user.rank || 0} - ${user.xp} XP`;
+			return `${index + 1}. <@${user.players.userId}> - rank: ${user.rank || 0} - ${user.xp} XP`;
 		}).join("\n");
 
 		await interaction.reply({ content: `**Top 10 Users by XP:**\n${leaderboard}`, flags: MessageFlags.Ephemeral });
