@@ -165,6 +165,7 @@ async function autocompleteCharacters(focusedValue: any, userId: any) {
       players : {
         userId: userId,
       },
+      enabled: true,
     },
   });
   const choices = characters.map((character: any) => ({

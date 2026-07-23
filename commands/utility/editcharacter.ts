@@ -7,16 +7,24 @@ import { sendDBRequest } from "../../singletons/database.ts";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("fetchdonations")
-    .setDescription(
-      "Displays how much XP has a character donated to which entity.",
-    )
+    .setName("editcharacter")
+    .setDescription("Edits an existing character for the user.")
     .addNumberOption((option) =>
       option
-        .setName("character")
-        .setDescription("The character to fetch donations for.")
+        .setName("characterid")
+        .setDescription("The ID of the character to edit.")
         .setRequired(true)
         .setAutocomplete(true),
+    )
+    .addStringOption((option) =>
+      option
+        .setName("newcharactername")
+        .setDescription("The new name of the character."),
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("enabled")
+        .setDescription("Whether the character is enabled or not."),
     ),
   async autocomplete(interaction: any) {
     const focusedValue = interaction.options.getFocused();
@@ -27,48 +35,32 @@ export default {
     await interaction.respond(filtered);
   },
   async execute(interaction: any) {
-    const characterId = interaction.options.getNumber("character");
-    if (!characterId) {
-      return interaction.reply({
-        content: "Invalid input.",
-        flags: MessageFlags.Ephemeral,
-      });
+    let data: any = {};
+    if (interaction.options.getString("newcharactername")) {
+      data.name = interaction.options.getString("newcharactername");
     }
-    const donations = await sendDBRequest("xpDonationLog", "findMany", {
+    if (
+      interaction.options.getBoolean("enabled") ||
+      interaction.options.getBoolean("enabled") === false
+    ) {
+      data.enabled = interaction.options.getBoolean("enabled");
+    }
+    await sendDBRequest("characters", "update", {
       where: {
-        character: characterId,
-        enabled: true,
+        id: interaction.options.getNumber("characterid"),
+        players: {
+          userId: interaction.user.id,
+        },
       },
-      include: {
-        xpDonationEntities: true,
-        characters: {
-            select: {
-                name: true,
-            },
-        }
-      },
+      data: data,
     });
-
-    if (!donations || donations.length === 0) {
-      return interaction.reply({
-        content: "No donations found for this character.",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    const donationList = donations
-      .map(
-        (donation: any) =>
-          `- ${donation.xpDonationEntities.entityName}: ${donation.xpDonated} XP`,
-      )
-      .join("\n");
-
     await interaction.reply({
-      content: `**Donations for ${donations[0].characters.name}:**\n${donationList}`,
+      content: `Character updated successfully.`,
       flags: MessageFlags.Ephemeral,
     });
   },
 };
+
 async function autocompleteCharacters(focusedValue: any, userId: any) {
   const characters = await sendDBRequest("characters", "findMany", {
     where: {
@@ -81,6 +73,7 @@ async function autocompleteCharacters(focusedValue: any, userId: any) {
     name: character.name,
     value: Number(character.id),
   }));
+  console.log("Choices for autocompleteCharacters:", choices);
   const filtered = choices.filter((choice: { name: string }) =>
     choice.name.startsWith(focusedValue),
   );
