@@ -36,8 +36,7 @@ export default {
     }
     const donations = await sendDBRequest("xpDonationLog", "findMany", {
       where: {
-        character: characterId,
-        enabled: true,
+        character: characterId
       },
       include: {
         xpDonationEntities: true,
