@@ -47,6 +47,15 @@ export default {
         }
       },
     });
+    const thresholds = await sendDBRequest("xpDonationThresholds", "findMany", {
+      orderBy: {
+        xpRequired: "asc",
+      },
+    });
+    const thresholdNormalized: number[] = [];
+    for (const threshold of thresholds) {
+      thresholdNormalized.push(threshold.xpRequired);
+    }
 
     if (!donations || donations.length === 0) {
       return interaction.reply({
@@ -54,14 +63,28 @@ export default {
         flags: MessageFlags.Ephemeral,
       });
     }
+    
 
-    const donationList = donations
-      .map(
-        (donation: any) =>
-          `- ${donation.xpDonationEntities.entityName}: ${donation.xpDonated} XP`,
-      )
-      .join("\n");
+      //totals for each entity, summing the xpDonated for each entity
+      const donationTotals = donations.reduce((acc: { [key: string]: number }, donation: any) => {
+        const entityName = donation.xpDonationEntities.entityName;
+        if (!acc[entityName]) {
+          acc[entityName] = 0;
+        }
+        acc[entityName] += Number(donation.xpDonated);
+        return acc;
+      }, {});
 
+      const donationList = Object.entries(donationTotals)
+        .map(([entityName, totalXpDonated] : [string,any]) => {
+          const tierForEntity = thresholdNormalized.findIndex(
+            (threshold) => threshold > totalXpDonated,
+          );
+          return `- __${entityName}__: Total XP Donated: **${totalXpDonated}** - Current Tier: **${tierForEntity === -1 ? thresholdNormalized.length : tierForEntity}**\nXp to donate for next tier: **${tierForEntity === -1 ? "N/A" : thresholdNormalized[tierForEntity] - totalXpDonated}**`;
+        })
+        .join("\n\n");
+      
+    
     await interaction.reply({
       content: `**Donations for ${donations[0].characters.name}:**\n${donationList}`,
       flags: MessageFlags.Ephemeral,

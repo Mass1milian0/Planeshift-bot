@@ -172,7 +172,6 @@ async function autocompleteCharacters(focusedValue: any, userId: any) {
     name: character.name,
     value: Number(character.id),
   }));
-  console.log("Choices for autocompleteCharacters:", choices);
   const filtered = choices.filter((choice: { name: string }) =>
     choice.name.startsWith(focusedValue),
   );

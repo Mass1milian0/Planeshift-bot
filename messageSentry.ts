@@ -215,7 +215,6 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
     await checkThreshold(msg);
   }
   //check if message was sent in the honeypot channel, if so, ban the user that sent the message
-  console.log(`Checking message in channel ${msg.channelId} against honeypot channel ${botConfig?.honeypotChannel}`);
   if (msg.channelId === botConfig?.honeypotChannel) {
     const guild = msg.guild;
     if (!guild) return;
@@ -223,7 +222,6 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
     if (!member) return;
     //ban and delete the messages
     await member.ban({ reason: "Sent a message in the honeypot channel", deleteMessageSeconds: 604800});
-    console.log(`Banned user ${msg.author.tag} for sending a message in the honeypot channel`);
     return;
   }
   let isListed = channelBlacklist.find(

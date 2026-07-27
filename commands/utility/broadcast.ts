@@ -34,7 +34,6 @@ export default {
         const targetChannel = interaction.client.channels.cache.get(
           channel.channelId
         );
-        console.log(targetChannel)
         if (targetChannel && targetChannel.isTextBased()) {
           targetChannel.send(message.content);
           //await 3 seconds before sending the next message
