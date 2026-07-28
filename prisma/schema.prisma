@@ -78,6 +78,7 @@ model xpDonationEntities {
   totalXp         Int             @default(0)
   donationMessage String          @default("\"\"")
   entityImageUrl  String          @default("")
+  shortName       String?
   xpDonationLog   xpDonationLog[]
 }
 

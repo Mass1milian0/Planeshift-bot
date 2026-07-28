@@ -106,7 +106,72 @@ export default {
     }
     const currentXP = entityData.totalXp || 0;
     const newXP = currentXP + amount;
+    const donations = await sendDBRequest("xpDonationLog", "findMany", {
+      where: {
+        character: character,
+        entityId: entity,
+      },
+      include: {
+        characters: {
+          select: {
+            name: true,
+          },
+        },
+        xpDonationEntities: {
+          select: {
+            entityName: true,
+            shortName: true,
+          },
+        },
+      },
+    });
+    const thresholds = await sendDBRequest("xpDonationThresholds", "findMany", {
+      orderBy: {
+        xpRequired: "asc",
+      },
+    });
+    const thresholdNormalized: number[] = [];
+    for (const threshold of thresholds) {
+      thresholdNormalized.push(threshold.xpRequired);
+    }
+    const donationTotals = donations.reduce(
+      (acc: { [key: string]: { xp: number; shortName: string | null } }, donation: any) => {
+        const entityName = donation.xpDonationEntities.entityName;
+        if (!acc[entityName]) {
+          acc[entityName] = {
+            xp: 0,
+            shortName: donation.xpDonationEntities.shortName || null,
+          };
+        }
+        acc[entityName].xp += Number(donation.xpDonated);
+        return acc;
+      },
+      {},
+    );
 
+    //check if currentXP + amount donated exceeds any thresholds, if so, send a message to the user that they have reached a new threshold
+    let newThreshold = thresholds.find(
+      (t: { xpRequired: any; tier: number }) =>
+          (donationTotals[entityData.entityName]?.xp || 0) + amount <= Number(t.xpRequired)
+    );
+    //finds the treshold that the user is currently at, if any
+    let currentThreshold
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      if ((donationTotals[entityData.entityName]?.xp || 0) >= Number(thresholds[i].xpRequired)) {
+        //if the xp i have are greater than or equal to the xp required for this threshold
+        currentThreshold = thresholds[i]; //this is the current threshold
+      }
+    }
+    if (newThreshold && currentThreshold && newThreshold.tier === currentThreshold.tier) {
+      newThreshold = null;
+    }
+    //inject entity shortname into newThreshold if it exists
+    if (newThreshold) {
+      newThreshold.shortName = entityData.shortName || null;
+      if (!newThreshold.shortName) {
+        newThreshold = null;
+      }
+    }
     let message = `<@${interaction.user.id}>
 {character} offers {xp}xp!`;
     message = message.replace("{user}", `${interaction.user.displayName}`);
@@ -131,7 +196,18 @@ export default {
       "{xp}",
       `${amount}`,
     );
-    webhook.webhook.send(webhookMessage);
+    await webhook.webhook.send(webhookMessage);
+    if (newThreshold) {
+      let msg=`Congratulations! {user} you have reached tier ${newThreshold.tier} for {entity}.
+to claim your reward, please use the command \`\`!ElderBoons {shortname} ${newThreshold.tier}\`\``;
+      msg = msg.replace("{user}", `${interaction.user.displayName}`);
+      msg = msg.replace("{entity}", `${entityData.entityName}`);
+      msg = msg.replace("{shortname}", `${entityData.shortName}`);
+      
+      await interaction.followUp({
+        content: msg,
+      });
+    }
     await sendDBRequest("xpDonationEntities", "update", {
       where: { id: entity },
       data: { totalXp: newXP },
@@ -161,8 +237,8 @@ async function autocompleteEntities(focusedValue: any) {
 }
 async function autocompleteCharacters(focusedValue: any, userId: any) {
   const characters = await sendDBRequest("characters", "findMany", {
-    where: { 
-      players : {
+    where: {
+      players: {
         userId: userId,
       },
       enabled: true,
