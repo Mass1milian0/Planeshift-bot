@@ -150,16 +150,21 @@ export default {
     );
 
     //check if currentXP + amount donated exceeds any thresholds, if so, send a message to the user that they have reached a new threshold
-    let newThreshold = thresholds.find(
-      (t: { xpRequired: any; tier: number }) =>
-          (donationTotals[entityData.entityName]?.xp || 0) + amount <= Number(t.xpRequired)
-    );
+    let newThreshold
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      if ((donationTotals[entityData.entityName]?.xp || 0) + amount >= Number(thresholds[i].xpRequired)) {
+        //if the xp i have are greater than or equal to the xp required for this threshold
+        newThreshold = thresholds[i]; //this is the new threshold
+        break;
+      }
+    }
     //finds the treshold that the user is currently at, if any
     let currentThreshold
     for (let i = thresholds.length - 1; i >= 0; i--) {
       if ((donationTotals[entityData.entityName]?.xp || 0) >= Number(thresholds[i].xpRequired)) {
         //if the xp i have are greater than or equal to the xp required for this threshold
         currentThreshold = thresholds[i]; //this is the current threshold
+        break;
       }
     }
     if (newThreshold && currentThreshold && newThreshold.tier === currentThreshold.tier) {
