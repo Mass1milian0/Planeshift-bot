@@ -117,26 +117,28 @@ async function xp(msg: Message, amt: number) {
   }
 }
 
-async function award(msg: Message) {
+async function award(msg: Message,multiplier = 1) {
   const ignoredChars = ignoredCharacters.map(
     (c: { ignoredChar: any }) => c.ignoredChar
   );
   const messageContent = msg.content;
+  console.log(`Awarding XP for message: ${messageContent}`);
+  console.log(`Multiplier applied: ${multiplier}`);
   switch (botConfig?.xpAwardTypes?.awardType) {
     case "Message":
-      await xp(msg, botConfig?.xpPerAward || 0);
+      await xp(msg, (botConfig?.xpPerAward || 0) * multiplier);
       break;
     case "Character":
       //count the characters in the message ignoring characters in ignoredCharacters
       const characterCount = messageContent
         .split("")
         .filter((c) => !ignoredChars.includes(c)).length;
-      await xp(msg, characterCount * (botConfig?.xpPerAward || 0));
+      await xp(msg, characterCount * (botConfig?.xpPerAward || 0) * multiplier);
       break;
     case "Word":
       //count the words in the message
       const wordCount = messageContent.split(" ").length;
-      await xp(msg, wordCount * (botConfig?.xpPerAward || 0));
+      await xp(msg, wordCount * (botConfig?.xpPerAward || 0) * multiplier);
       break;
   }
   return;
@@ -195,8 +197,38 @@ ${botConfig?.awardMessage}
 }
 
 client.on("messageCreate", async (msg: Message<boolean>) => {
+  let multiplier = 1;
   if (!Loaded) return; //ignore messages until configuration is loaded
   if (msg.author.bot) return; //ignore bot messages
+  //apply multiplier based on channel configuration
+  const channelConfigEntry = channelConfig.find(
+    (c: { channelId: any }) => c.channelId === msg.channelId
+  );
+  console.log(`channel config entry:`);
+  //it has bigInt which json stringify cannot handle properly, lets process it so it doesn't throw an error
+  const safeChannelConfigEntry = JSON.parse(JSON.stringify(channelConfigEntry, (_, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  ));
+  console.log(`channel config entry: ${JSON.stringify(safeChannelConfigEntry)}`);
+  multiplier = channelConfigEntry?.rpXpLevel ?? 0; //we hold it in here for now, save up on variables
+  console.log(`initial multiplier: ${multiplier}`);
+  console.log(`direct Read: ${channelConfigEntry.rpXpLevel}`);
+
+  switch(multiplier) {
+    case 0:
+      multiplier = 1;
+      break;
+    case 1:
+      multiplier = 1.15;
+      break;
+    case 2:
+      multiplier = 1.3;
+      break;
+    default:
+      multiplier = 1;
+      break;
+  }
+  
   if (msg.channel.isThread()) {
     //get the id of the parent channel
     const parentChannelId = msg.channel.parentId;
@@ -211,7 +243,7 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
     //ignore if the parent channel is set to not follow threads, default to following threads
     let followThreads = parentChannelConfig?.followThreads ?? true;
     if (!followThreads) return;
-    await award(msg);
+    await award(msg, multiplier);
     await checkThreshold(msg);
   }
   //check if message was sent in the honeypot channel, if so, ban the user that sent the message
@@ -229,7 +261,7 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
   );
   if (botConfig?.whitelistmode && !isListed) return; //ignore if whitelist mode is enabled and the channel is not whitelisted
   if (!botConfig?.whitelistmode && isListed) return;
-  await award(msg);
+  await award(msg, multiplier);
   await checkThreshold(msg);
 });
 

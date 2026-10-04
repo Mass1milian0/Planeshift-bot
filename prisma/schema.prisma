@@ -35,6 +35,7 @@ model channelConfig {
   channelId     String   @unique
   followThreads Boolean  @default(true)
   created_at    DateTime @default(now()) @db.Timestamptz(6)
+  rpXpLevel     Int      @default(0) @db.SmallInt
 }
 
 model ignoredCharacters {

@@ -21,26 +21,44 @@ export default {
         )
         .setRequired(true)
     )
+    .addIntegerOption((option) =>
+      option
+        .setName("guildchannel")
+        .setDescription(
+          "is this a guild chat? (additional rpXp)"
+        )
+        .setChoices(
+          { name: "No (default)", value: 0 },
+          { name: "T1 Guild", value: 1},
+          { name: "T3 Guild", value: 2}
+        )
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction: any) {
-    const ch = await database.channelConfig.upsert({
-      where: { channelId: interaction.channelId },
-      create: { channelId: interaction.channelId },
-      update: {
-        followThreads: interaction.options.getBoolean("followthreads"),
-      },
-    });
-    if (ch.followThreads) {
+
+    //set defaults if null
+    const ft = interaction.options.getBoolean("followthreads") ?? true;
+    const gc = interaction.options.getInteger("guildchannel") ?? 0;
+    try{
+      const ch = await database.channelConfig.upsert({
+        where: { channelId: interaction.channelId },
+        create: { channelId: interaction.channelId },
+        update: {
+          followThreads: ft,
+          rpXpLevel: gc
+        },
+      });
+      sendUpdate();
       await interaction.reply({
-        content: "Channel will reward XP for thread messages.",
+        content: "Channel configuration updated successfully.",
         flags: MessageFlags.Ephemeral,
       });
-    } else {
+    } catch (error) {
+      console.error(error);
       await interaction.reply({
-        content: "Channel will not reward XP for thread messages.",
+        content: "An error occurred while updating the channel configuration.",
         flags: MessageFlags.Ephemeral,
       });
     }
-    sendUpdate(); 
   },
 };
