@@ -204,15 +204,7 @@ client.on("messageCreate", async (msg: Message<boolean>) => {
   const channelConfigEntry = channelConfig.find(
     (c: { channelId: any }) => c.channelId === msg.channelId
   );
-  console.log(`channel config entry:`);
-  //it has bigInt which json stringify cannot handle properly, lets process it so it doesn't throw an error
-  const safeChannelConfigEntry = JSON.parse(JSON.stringify(channelConfigEntry, (_, value) =>
-    typeof value === 'bigint' ? value.toString() : value
-  ));
-  console.log(`channel config entry: ${JSON.stringify(safeChannelConfigEntry)}`);
   multiplier = channelConfigEntry?.rpXpLevel ?? 0; //we hold it in here for now, save up on variables
-  console.log(`initial multiplier: ${multiplier}`);
-  console.log(`direct Read: ${channelConfigEntry.rpXpLevel}`);
 
   switch(multiplier) {
     case 0:
